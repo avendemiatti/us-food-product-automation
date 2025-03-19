@@ -35,12 +35,22 @@ def extract_from_page(soup, base_domain, current_url):
     for product in product_elements:
         title_elem = product.find('h2', class_='title-card-showcase')
         link_elem = product.find('a', href=True)
+        price_elem = product.find('p', class_='value-wine-card')
+        
         if title_elem and link_elem:
             href = link_elem['href']
             full_url = urllib.parse.urljoin(base_domain, href) if not href.startswith('http') else href
+            description = title_elem.text.strip()
+            if price_elem:
+                raw_price = price_elem.get_text(strip=True)
+                # Remove "R$" and non-breaking spaces to get only the numeric price
+                price = raw_price.replace("R$", "").replace("\xa0", "").strip()
+            else:
+                price = ""
             wine_data.append({
-                'url': full_url,
-                'title': title_elem.text.strip()
+                'description': description,
+                'price': price,
+                'url': full_url
             })
     return wine_data
 
@@ -60,7 +70,7 @@ def remove_duplicates(wine_data):
 def save_to_file(wine_data, filename='wine_data.csv'):
     try:
         with open(filename, 'w', encoding='utf-8', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=['title', 'url'])
+            writer = csv.DictWriter(f, fieldnames=['description', 'price', 'url'])
             writer.writeheader()
             writer.writerows(wine_data)
         print(f"Wine data saved to {filename}")
@@ -86,7 +96,8 @@ if __name__ == "__main__":
     
     print(f"\nFound {len(unique_wine_data)} unique wine products:")
     for i, item in enumerate(unique_wine_data, 1):
-        print(f"{i}. Title: {item['title']}")
+        print(f"{i}. Description: {item['description']}")
+        print(f"   Price: {item['price']}")
         print(f"   URL: {item['url']}\n")
     
     save_to_file(unique_wine_data)
